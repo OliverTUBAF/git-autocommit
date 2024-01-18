@@ -12,14 +12,16 @@ function show_help {
 	echo "Usage: $SCRIPT_NAME [options]"
 	echo ""
 	echo "Options:"
-	echo "-p PATH		Path to local repository."
-	echo "-h		Show this help"
+	echo "-p PATH      Path to local repository."
+	echo "-b BRANCH    Branch to use in local repository."
+	echo "-h           Show this help"
 }
 
 #echo "Analyzing given options \"$*\""
-while getopts ":p:h" opt; do
+while getopts ":p:b:h" opt; do
     	case $opt in
 		p) REPO_PATH="${OPTARG}" ;;
+		b) REPO_BRANCH="${OPTARG}" ;;
 		h) show_help; exit 1;;
 		\?) echo "Unknown option: -${OPTARG}";;
 		:) echo "Option -$OPTARG requires an argument." >&2; exit 1;;
@@ -57,6 +59,24 @@ if ! (git config --global user.email >/dev/null 2>&1) && ! (git -C $REPO_PATH co
 	echo "git -C \"${REPO_PATH}\" config user.email \"you@example.com\""
 	exit 1
 fi
+
+# This currently ends always in an exit 1, because one cannot switch branches without commiting first.
+# If you commit first, there is no need to switch, because everything is already commited.
+# Maybe implement some stashing mechanism?
+if [ ! -z "$REPO_BRANCH" ]; then
+	REPO_PREV_BRANCH=$(git branch --show-current)
+	if (git -C "$REPO_PATH" branch --list | grep -q "$REPO_BRANCH"); then
+		git -C "$REPO_PATH" checkout $REPO_BRANCH
+		if [ ! $? -eq 0 ]; then
+			exit $?
+		fi
+	fi
+fi
+
 echo $MESSAGE
 git -C "$REPO_PATH" add -A
 git -C "$REPO_PATH" commit -m "$MESSAGE" #--no-status #--quiet
+
+if [ ! -z "$REPO_BRANCH" ] && [ "$REPO_BRANCH" != "$REPO_PREV_BRANCH" ]; then
+	git checkout $REPO_PREV_BRANCH
+fi
