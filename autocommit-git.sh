@@ -59,4 +59,5 @@ if ! (git config --global user.email >/dev/null 2>&1) && ! (git -C $REPO_PATH co
 fi
 echo $MESSAGE
 git -C "$REPO_PATH" add -A
-git -C "$REPO_PATH" commit -m "$MESSAGE" #--no-status #--quiet
+CHANGES=$(git status --short)
+git -C "$REPO_PATH" commit -m "$MESSAGE" -m "$CHANGES" #--no-status #--quiet
